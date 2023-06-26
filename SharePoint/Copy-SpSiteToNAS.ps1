@@ -189,7 +189,7 @@ Function Copy-SPOFiles(){
           If (!(Test-Path -LiteralPath $LocalFolderPath)) {
                   New-Item -ItemType Directory -Path $LocalFolderPath | Out-Null
           }
-          Download-Files -ListItems
+          Download-Files -ListItems $ListItems -List $List -localFolder $localFolder
           Write-Log -Message "Created subfolder $LocalFolderPath" -level FULL
       }
 
@@ -260,7 +260,7 @@ Function Download-Files() {
       }
     }
   }
-}
+
 
 Function Get-NrOfDownloadedFiles() {
   <#
@@ -290,13 +290,16 @@ Function New-SPSiteArchiveFolder() {
     [Parameter(Mandatory = $true)] $downloadPath
   )
   process {
-    If (!(Test-Path -LiteralPath ($downloadPath +"\" +$title))) {
-      New-Item -Path $downloadPath -Name $title -ItemType 'directory'
-    }Else{
-      $downloadPath +"\" +$title
+    $folderPath = $downloadPath + "\" + $title
+    If (!(Test-Path -LiteralPath $folderPath)) {
+      New-Item -Path $downloadPath -Name $title -ItemType 'directory' | Out-Null
     }
+
+    # Return the folder path as a string
+    $folderPath
   }
 }
+
 
 # Connect to SharePoint Online
 Connect-PnPOnline $SiteURL -Interactive
@@ -339,4 +342,4 @@ Write-Log -Message "Download completed" -level INFO
 Write-Log -Message "---------------------------------------------" -level INFO
 Write-Log -Message "Number of files copied $($Global:filesCopied)" -level INFO
 Write-Log -Message "Number of files skipped $($Global:filesSkipped)" -level INFO
-Write-Log -Message "---------------------------------------------" -level INFO  
+Write-Log -Message "---------------------------------------------" -level INFO
