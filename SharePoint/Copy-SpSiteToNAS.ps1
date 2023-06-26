@@ -180,7 +180,7 @@ Function Copy-SPOFiles(){
       }
 
       # Get all Subfolders of the library
-      $SubFolders = $ListItems | Where {$_.FileSystemObjectType -eq "Folder" -and $_.FieldValues.FileLeafRef -ne "Forms"}
+      $SubFolders = $ListItems | Where-Object {$_.FileSystemObjectType -eq "Folder" -and $_.FieldValues.FileLeafRef -ne "Forms"}
       $SubFolders | ForEach-Object {
           # Create local path for the sub folder
           $LocalFolderPath = $localFolder + ($_.FieldValues.FileRef.Substring($Web.ServerRelativeUrl.Length)) -replace "/","\"
@@ -189,9 +189,10 @@ Function Copy-SPOFiles(){
           If (!(Test-Path -LiteralPath $LocalFolderPath)) {
                   New-Item -ItemType Directory -Path $LocalFolderPath | Out-Null
           }
-          Download-Files -ListItems $ListItems -List $List -localFolder $localFolder
+          
           Write-Log -Message "Created subfolder $LocalFolderPath" -level FULL
       }
+      Receive-Files -ListItems $ListItems -List $List -localFolder $localFolder
 
       Write-Progress -CurrentOperation "downloadItems" -Activity "Completed downloading items from library $($List.Title)" -Completed
     }
@@ -201,7 +202,7 @@ Function Copy-SPOFiles(){
   }
 }
 
-Function Download-Files() {
+Function Receive-Files() {
     <#
   .SYNOPSIS
     Download all folders and files from the given library
@@ -213,7 +214,7 @@ Function Download-Files() {
   )
   process{
     # Get all Files from the folder
-    $FilesColl =  $ListItems | Where {$_.FileSystemObjectType -eq "File"}
+    $FilesColl =  $ListItems | Where-Object {$_.FileSystemObjectType -eq "File"}
     $FileCounter = 0
 
     # Iterate through each file and download
@@ -247,7 +248,7 @@ Function Download-Files() {
           $Global:filesCopied++
         }else{
           # Compare local and SPO file date
-          if ($FileModifiedDate -gt ( Get-ChildItem -Path $FilePath | Select -ExpandProperty LastWriteTime)) {
+          if ($FileModifiedDate -gt ( Get-ChildItem -Path $FilePath | Select-Object -ExpandProperty LastWriteTime)) {
             # SPO file is newer than local file, overwrite local file
             Get-PnPFile -ServerRelativeUrl $SourceURL -Path $FileDownloadPath -FileName $FileName -AsFile -force
             Write-Log -Message "Downloaded newer version of $FileName from $SourceUrl " -level FULL
@@ -312,7 +313,7 @@ New-Item -Path $Global:logFile -Force | Out-Null
 # Create folder for SharePoint site in Archive folder
 $localFolder = New-SPSiteArchiveFolder -DownloadPath $downloadPath -title $web.title
 
-# Get all the libraries
+# Get all the libraries 
 $documentLibraries = Get-DocLibraries
 Write-Log -Message  "$(($documentLibraries).count) Document Libraries found" -level INFO
 
