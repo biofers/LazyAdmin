@@ -243,17 +243,40 @@ Function Receive-Files() {
 
         If (-not(Test-Path -Path $FilePath -PathType Leaf)) {
           # Download the File
-          Get-PnPFile -ServerRelativeUrl $SourceURL -Path $FileDownloadPath -FileName $FileName -AsFile -force
-          Write-Log -Message "Downloaded $FileName from $SourceUrl " -level FULL
-          $Global:filesCopied++
+        try {
+            Get-PnPFile -ServerRelativeUrl $SourceURL -Path $FileDownloadPath -FileName $FileName -AsFile -Force
+            Write-Log -Message "Downloaded $FileName from $SourceURL" -Level FULL
+            $Global:filesCopied++
+        } catch {
+            if ($_.Exception.Message -match "The length of the URL for this request exceeds the configured maxUrlLength value") {
+                Write-Log -Message "Skipped $FileName from $SourceURL - Path is too long" -Level FULL
+                $Global:filesSkipped++
+            } else {
+                # Handle any other exception that may occur
+                Write-Log -Message "Error downloading $FileName from $SourceURL $($_.Exception.Message)" -Level ERROR
+                # You can choose to rethrow the exception or handle it in a different way
+                throw
+            }
+        }
         }else{
           # Compare local and SPO file date
           if ($FileModifiedDate -gt ( Get-ChildItem -Path $FilePath | Select-Object -ExpandProperty LastWriteTime)) {
             # SPO file is newer than local file, overwrite local file
-            Get-PnPFile -ServerRelativeUrl $SourceURL -Path $FileDownloadPath -FileName $FileName -AsFile -force
-            Write-Log -Message "Downloaded newer version of $FileName from $SourceUrl " -level FULL
-            $Global:filesCopied++
-          }else{
+            try {
+              Get-PnPFile -ServerRelativeUrl $SourceURL -Path $FileDownloadPath -FileName $FileName -AsFile -Force
+              Write-Log -Message "Downloaded $FileName from $SourceURL" -Level FULL
+              $Global:filesCopied++
+          } catch {
+              if ($_.Exception.Message -match "The length of the URL for this request exceeds the configured maxUrlLength value") {
+                  Write-Log -Message "Skipped $FileName from $SourceURL - Path is too long" -Level FULL
+                  $Global:filesSkipped++
+              } else {
+                  # Handle any other exception that may occur
+                  Write-Log -Message "Error downloading $FileName from $SourceURL $($_.Exception.Message)" -Level ERROR
+                  # You can choose to rethrow the exception or handle it in a different way
+                  throw
+              }
+          }          }else{
             Write-Log -Message "Skipped $FileName from $SourceUrl - Already exists" -level FULL
             $Global:filesSkipped++
           }
