@@ -58,7 +58,10 @@ param(
 # Init Log file
 $Global:logFile = [string]""
 $Global:filesCopied = [int] 0
-$Global:filesSkipped = [int] 0
+$Global:filesCopiedNew = [int] 0
+$Global:filesSkippedExists = [int] 0
+$Global:filesSkippedPath = [int] 0
+
 
 Function Write-Log {
   <#
@@ -250,7 +253,7 @@ Function Receive-Files() {
         } catch {
             if ($_.Exception.Message -match "The length of the URL for this request exceeds the configured maxUrlLength value") {
                 Write-Log -Message "Skipped $FileName from $SourceURL - Path is too long" -Level FULL
-                $Global:filesSkipped++
+                $Global:filesSkippedPath++
             } else {
                 # Handle any other exception that may occur
                 Write-Log -Message "Error downloading $FileName from $SourceURL $($_.Exception.Message)" -Level ERROR
@@ -265,11 +268,11 @@ Function Receive-Files() {
             try {
               Get-PnPFile -ServerRelativeUrl $SourceURL -Path $FileDownloadPath -FileName $FileName -AsFile -Force
               Write-Log -Message "Downloaded $FileName from $SourceURL" -Level FULL
-              $Global:filesCopied++
+              $Global:filesCopiedNew++
           } catch {
               if ($_.Exception.Message -match "The length of the URL for this request exceeds the configured maxUrlLength value") {
                   Write-Log -Message "Skipped $FileName from $SourceURL - Path is too long" -Level FULL
-                  $Global:filesSkipped++
+                  $Global:filesSkippedPath++
               } else {
                   # Handle any other exception that may occur
                   Write-Log -Message "Error downloading $FileName from $SourceURL $($_.Exception.Message)" -Level ERROR
@@ -278,7 +281,7 @@ Function Receive-Files() {
               }
           }          }else{
             Write-Log -Message "Skipped $FileName from $SourceUrl - Already exists" -level FULL
-            $Global:filesSkipped++
+            $Global:filesSkippedExists++
           }
         }
       }
@@ -365,5 +368,7 @@ Write-Log -Message "---------------------------------------------" -level INFO
 Write-Log -Message "Download completed" -level INFO
 Write-Log -Message "---------------------------------------------" -level INFO
 Write-Log -Message "Number of files copied $($Global:filesCopied)" -level INFO
-Write-Log -Message "Number of files skipped $($Global:filesSkipped)" -level INFO
+Write-Log -Message "Number of new files copied $($Global:filesCopiedNew)" -level INFO
+Write-Log -Message "Number of files skipped Path too long $($Global:filesSkippedPath)" -level INFO
+Write-Log -Message "Number of files skipped Already Exists $($Global:filesSkippedExists)" -level INFO
 Write-Log -Message "---------------------------------------------" -level INFO
